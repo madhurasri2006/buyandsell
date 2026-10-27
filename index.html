@@ -1,0 +1,454 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buy and Sell Products</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f5f9;
+  margin: 0;
+  color: #222;
+}
+header {
+  background: #234567;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+nav {
+  text-align: center;
+  padding: 12px;
+  background: white;
+}
+button {
+  padding: 10px 15px;
+  margin: 5px;
+  background: #1769aa;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+button:hover {
+  background: #104b7c;
+}
+.container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 15px;
+}
+.box {
+  background: white;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+input, textarea, select {
+  width: 100%;
+  padding: 10px;
+  margin: 7px 0 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+.product-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+}
+.product {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+.product img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+.price {
+  color: green;
+  font-weight: bold;
+  font-size: 20px;
+}
+.hidden {
+  display: none;
+}
+.message {
+  color: green;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Buy & Sell Products</h1>
+  <p>Buy products and sell your own products</p>
+</header>
+
+<nav id="menu" class="hidden">
+  <button onclick="showPage('shop')">Buy Products</button>
+  <button onclick="showPage('sell')">Sell Product</button>
+  <button onclick="showPage('orders')">My Orders</button>
+  <button onclick="logout()">Logout</button>
+</nav>
+
+<div class="container">
+
+<section id="login" class="box">
+  <h2>Login</h2>
+  <form id="loginForm">
+    <label>Email</label>
+    <input type="email" id="loginEmail" required>
+    <label>Password</label>
+    <input type="password" id="loginPassword" required>
+    <button type="submit">Login</button>
+  </form>
+
+  <p>New user? Create an account below.</p>
+
+  <h3>Register</h3>
+  <form id="registerForm">
+    <label>Name</label>
+    <input id="regName" required>
+    <label>Email</label>
+    <input type="email" id="regEmail" required>
+    <label>Password</label>
+    <input type="password" id="regPassword" required minlength="4">
+    <button type="submit">Register</button>
+  </form>
+  <p id="loginMessage" class="message"></p>
+</section>
+
+<section id="shop" class="hidden">
+  <div class="box">
+    <h2>Available Products</h2>
+    <input id="search" placeholder="Search products..." oninput="displayProducts()">
+  </div>
+  <div id="productList" class="product-list"></div>
+</section>
+
+<section id="sell" class="box hidden">
+  <h2>Sell Your Product</h2>
+  <form id="sellForm">
+    <label>Product Name</label>
+    <input id="pName" required>
+    <label>Price (₹)</label>
+    <input type="number" id="pPrice" min="1" required>
+    <label>Quantity</label>
+    <input type="number" id="pQuantity" min="1" value="1" required>
+    <label>Category</label>
+    <select id="pCategory" required>
+      <option value="">Select category</option>
+      <option>Electronics</option>
+      <option>Books</option>
+      <option>Clothing</option>
+      <option>Home</option>
+      <option>Other</option>
+    </select>
+    <label>Product Image URL</label>
+    <input type="url" id="pImage" placeholder="https://example.com/image.jpg" required>
+    <label>Description</label>
+    <textarea id="pDescription" required></textarea>
+    <button type="submit">Add Product</button>
+  </form>
+  <p id="sellMessage" class="message"></p>
+</section>
+
+<section id="checkout" class="box hidden">
+  <h2>Delivery Address</h2>
+  <p id="selectedProduct"></p>
+  <form id="buyForm">
+    <label>Full Name</label>
+    <input id="buyerName" required>
+    <label>Phone Number</label>
+    <input id="buyerPhone" type="tel" pattern="[0-9]{10}" maxlength="10" required>
+    <label>Street Address</label>
+    <textarea id="buyerAddress" required></textarea>
+    <label>City</label>
+    <input id="buyerCity" required>
+    <label>State</label>
+    <input id="buyerState" required>
+    <label>PIN Code</label>
+    <input id="buyerPin" pattern="[0-9]{6}" maxlength="6" required>
+    <label>Quantity</label>
+    <input type="number" id="buyQuantity" min="1" value="1" required>
+    <button type="submit">Confirm Purchase</button>
+    <button type="button" onclick="showPage('shop')">Cancel</button>
+  </form>
+  <p id="buyMessage" class="message"></p>
+</section>
+
+<section id="orders" class="box hidden">
+  <h2>My Orders</h2>
+  <div id="orderList"></div>
+</section>
+
+</div>
+
+<script>
+let users = [];
+let currentUser = null;
+let selected = null;
+let orders = [];
+let nextId = 4;
+
+let products = [
+  {
+    id: 1,
+    name: "Headphones",
+    price: 899,
+    quantity: 5,
+    category: "Electronics",
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500",
+    description: "Good quality headphones",
+    seller: "Demo Seller"
+  },
+  {
+    id: 2,
+    name: "Books",
+    price: 250,
+    quantity: 10,
+    category: "Books",
+    image: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500",
+    description: "Useful study books",
+    seller: "Demo Seller"
+  },
+  {
+    id: 3,
+    name: "Backpack",
+    price: 650,
+    quantity: 4,
+    category: "Other",
+    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500",
+    description: "Daily use backpack",
+    seller: "Demo Seller"
+  }
+];
+
+function showPage(page) {
+  ["login", "shop", "sell", "checkout", "orders"].forEach(id => {
+    document.getElementById(id).classList.add("hidden");
+  });
+  document.getElementById(page).classList.remove("hidden");
+  if (page === "shop") displayProducts();
+  if (page === "orders") displayOrders();
+}
+
+document.getElementById("registerForm").onsubmit = function(e) {
+  e.preventDefault();
+
+  let name = document.getElementById("regName").value.trim();
+  let email = document.getElementById("regEmail").value.trim().toLowerCase();
+  let password = document.getElementById("regPassword").value;
+
+  if (users.some(user => user.email === email)) {
+    document.getElementById("loginMessage").textContent =
+      "Email already registered.";
+    return;
+  }
+
+  users.push({ name, email, password });
+
+  document.getElementById("loginMessage").textContent =
+    "Registration successful. Please log in.";
+
+  this.reset();
+};
+
+document.getElementById("loginForm").onsubmit = function(e) {
+  e.preventDefault();
+
+  let email = document.getElementById("loginEmail").value.trim().toLowerCase();
+  let password = document.getElementById("loginPassword").value;
+
+  let user = users.find(u =>
+    u.email === email && u.password === password
+  );
+
+  if (!user) {
+    document.getElementById("loginMessage").textContent =
+      "Invalid login. Register first.";
+    return;
+  }
+
+  currentUser = user;
+  document.getElementById("menu").classList.remove("hidden");
+  showPage("shop");
+};
+
+function logout() {
+  currentUser = null;
+  document.getElementById("menu").classList.add("hidden");
+  showPage("login");
+}
+
+function displayProducts() {
+  let search = document.getElementById("search").value.toLowerCase();
+  let list = document.getElementById("productList");
+  list.innerHTML = "";
+
+  products.filter(p =>
+    p.quantity > 0 && p.name.toLowerCase().includes(search)
+  ).forEach(p => {
+    let card = document.createElement("div");
+    card.className = "product";
+
+    let image = document.createElement("img");
+    image.src = p.image;
+    image.alt = p.name;
+    image.onerror = function() {
+      this.src = "https://placehold.co/400x250?text=No+Image";
+    };
+
+    let title = document.createElement("h3");
+    title.textContent = p.name;
+
+    let price = document.createElement("p");
+    price.className = "price";
+    price.textContent = "₹" + p.price;
+
+    let description = document.createElement("p");
+    description.textContent = p.description;
+
+    let stock = document.createElement("p");
+    stock.textContent = "Available: " + p.quantity;
+
+    let buy = document.createElement("button");
+    buy.textContent = "Buy Product";
+    buy.onclick = function() {
+      startBuy(p.id);
+    };
+
+    card.append(image, title, price, description, stock, buy);
+    list.appendChild(card);
+  });
+
+  if (!list.children.length) {
+    list.textContent = "No products found.";
+  }
+}
+
+document.getElementById("sellForm").onsubmit = function(e) {
+  e.preventDefault();
+
+  let image = document.getElementById("pImage").value.trim();
+
+  if (!["http:", "https:"].includes(new URL(image).protocol)) {
+    document.getElementById("sellMessage").textContent =
+      "Please enter a valid image URL.";
+    return;
+  }
+
+  products.push({
+    id: nextId++,
+    name: document.getElementById("pName").value.trim(),
+    price: Number(document.getElementById("pPrice").value),
+    quantity: Number(document.getElementById("pQuantity").value),
+    category: document.getElementById("pCategory").value,
+    image: image,
+    description: document.getElementById("pDescription").value.trim(),
+    seller: currentUser.name
+  });
+
+  this.reset();
+  document.getElementById("sellMessage").textContent =
+    "Product added successfully.";
+
+  displayProducts();
+};
+
+function startBuy(id) {
+  selected = products.find(p => p.id === id);
+
+  document.getElementById("selectedProduct").textContent =
+    selected.name + " - ₹" + selected.price;
+
+  document.getElementById("buyQuantity").max = selected.quantity;
+  document.getElementById("buyQuantity").value = 1;
+
+  showPage("checkout");
+}
+
+document.getElementById("buyForm").onsubmit = function(e) {
+  e.preventDefault();
+
+  let quantity = Number(document.getElementById("buyQuantity").value);
+
+  if (!selected || quantity < 1 || quantity > selected.quantity) {
+    document.getElementById("buyMessage").textContent =
+      "Invalid quantity or product unavailable.";
+    return;
+  }
+
+  let order = {
+    buyer: currentUser.email,
+    product: selected.name,
+    quantity: quantity,
+    total: selected.price * quantity,
+    name: document.getElementById("buyerName").value.trim(),
+    phone: document.getElementById("buyerPhone").value.trim(),
+    address: document.getElementById("buyerAddress").value.trim(),
+    city: document.getElementById("buyerCity").value.trim(),
+    state: document.getElementById("buyerState").value.trim(),
+    pin: document.getElementById("buyerPin").value.trim(),
+    date: new Date().toLocaleDateString()
+  };
+
+  selected.quantity -= quantity;
+  orders.push(order);
+  selected = null;
+  this.reset();
+
+  document.getElementById("buyMessage").textContent =
+    "Order placed successfully.";
+
+  showPage("orders");
+};
+
+function displayOrders() {
+  let list = document.getElementById("orderList");
+  list.innerHTML = "";
+
+  let mine = orders.filter(o => o.buyer === currentUser.email);
+
+  if (!mine.length) {
+    list.textContent = "No orders yet.";
+    return;
+  }
+
+  mine.forEach(o => {
+    let item = document.createElement("div");
+    item.className = "box";
+
+    let title = document.createElement("h3");
+    title.textContent = o.product;
+
+    let total = document.createElement("p");
+    total.textContent = "Total: ₹" + o.total;
+
+    let quantity = document.createElement("p");
+    quantity.textContent = "Quantity: " + o.quantity;
+
+    let address = document.createElement("p");
+    address.textContent = "Delivery: " + o.name + ", " +
+      o.address + ", " + o.city + ", " + o.state + " - " + o.pin;
+
+    let phone = document.createElement("p");
+    phone.textContent = "Phone: " + o.phone;
+
+    let date = document.createElement("p");
+    date.textContent = "Order date: " + o.date;
+
+    item.append(title, total, quantity, address, phone, date);
+    list.appendChild(item);
+  });
+}
+</script>
+</body>
+</html>
